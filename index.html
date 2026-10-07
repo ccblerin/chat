@@ -1,191 +1,181 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Devorah Chat Forum</title>
-<style>
-  body { margin: 0; font-family: Arial; background: #f4f4f4; }
-  #loginScreen { display: flex; height: 100vh; align-items: center; justify-content: center; background: #1f2933; color: white; flex-direction: column; }
-  #loginScreen input { padding: 10px; width: 250px; margin-bottom: 10px; border-radius: 4px; border: none; }
-  #loginScreen button { padding: 10px 20px; border: none; background: #3eb0ef; color: white; border-radius: 4px; cursor: pointer; margin-bottom: 8px; }
-  #forumWrapper { display: none; height: 100vh; }
-  .sidebar { width: 260px; background: #1f2933; color: white; padding: 16px; overflow-y: auto; }
-  .sidebar h2 { margin-bottom: 10px; }
-  .topic-list li { list-style: none; padding: 10px; background: #323f4b; margin-bottom: 6px; border-radius: 4px; cursor: pointer; }
-  .topic-list li.active { background: #52606d; }
-  .chat-area { flex: 1; display: flex; flex-direction: column; background: white; }
-  .chat-header { padding: 12px; border-bottom: 1px solid #ddd; background: #f9fafb; }
-  .chat-messages { flex: 1; padding: 16px; overflow-y: auto; background: #f3f4f6; }
-  .message { background: #e5e7eb; padding: 10px; border-radius: 6px; margin-bottom: 10px; max-width: 75%; }
-  .meta { font-size: 11px; opacity: 0.7; margin-top: 4px; }
-  .reply-btn { font-size: 12px; color: #3b82f6; cursor: pointer; margin-top: 4px; }
-  .reply-box { margin-left: 20px; margin-top: 10px; padding-left: 10px; border-left: 2px solid #ccc; }
-  .chat-input { padding: 10px; border-top: 1px solid #ddd; display: flex; gap: 8px; }
-  .chat-input input { flex: 1; padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
-  .chat-input button { padding: 8px 16px; background: #10b981; border: none; color: white; border-radius: 4px; cursor: pointer; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Devorah Chat</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f7f7f7;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 400px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #chatBox {
+      margin-top: 20px;
+      border: 1px solid #ddd;
+      padding: 10px;
+      height: 250px;
+      overflow-y: auto;
+      background: #fafafa;
+    }
+    .message {
+      margin-bottom: 8px;
+      padding: 6px;
+      border-radius: 4px;
+      background: #e9ecef;
+    }
+    .timestamp {
+      font-size: 0.8em;
+      color: #666;
+      display: block;
+      margin-top: 2px;
+    }
+    #messageInput {
+      width: 80%;
+      padding: 8px;
+    }
+    #sendBtn {
+      width: 18%;
+      padding: 8px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #sendBtn:hover {
+      background-color: #218838;
+    }
+  </style>
 </head>
 <body>
+  <div class="container">
+    <h2>Devorah Chat</h2>
+    <input type="email" id="emailInput" placeholder="Email" />
+    <input type="password" id="passwordInput" placeholder="Password" />
+    <button id="signupBtn">Sign Up</button>
+    <button id="loginBtn">Log In</button>
+    <div id="status"></div>
 
-<!-- LOGIN -->
-<div id="loginScreen">
-  <h1>Devorah Chat Login</h1>
-  <input id="emailInput" placeholder="Email">
-  <input id="passwordInput" placeholder="Password" type="password">
-  <button onclick="login()">Login</button>
-  <button onclick="signup()">Sign Up</button>
-  <button onclick="anonymousLogin()">Enter Anonymously</button>
-</div>
-
-<!-- FORUM -->
-<div id="forumWrapper">
-  <div class="sidebar">
-    <h2>Topics</h2>
-    <ul class="topic-list" id="topicList">
-      <li class="active">General Chat</li>
-      <li>Tech Talk</li>
-      <li>Random</li>
-    </ul>
-  </div>
-
-  <div class="chat-area">
-    <div class="chat-header">
-      <h2 id="currentTopicTitle">General Chat</h2>
-    </div>
-
-    <div class="chat-messages" id="chatMessages"></div>
-
-    <div class="chat-input">
-      <input id="chatInput" placeholder="Type a message">
-      <button onclick="sendMessage()">Send</button>
+    <div id="chatSection" style="display:none;">
+      <h3>Chat Room</h3>
+      <div id="chatBox"></div>
+      <div style="display:flex; gap:4px;">
+        <input type="text" id="messageInput" placeholder="Type a message..." />
+        <button id="sendBtn">Send</button>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- Firebase -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-  import { 
-    getFirestore, collection, addDoc, query, where, onSnapshot, orderBy 
-  } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
-  import { 
-    getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, 
-    signInAnonymously, onAuthStateChanged 
-  } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
-  /* 🔥 Your Firebase Config */
-  const firebaseConfig = {
-    apiKey: "AIzaSyAIgxx7Z5VY2Gk3nwrA4SnP_PxZocMEyvc",
-    authDomain: "devorah-chat.firebaseapp.com",
-    projectId: "devorah-chat",
-    storageBucket: "devorah-chat.firebasestorage.app",
-    messagingSenderId: "923103482101",
-    appId: "1:923103482101:web:3de55ab01f5001c862b5bc"
-  };
+    const firebaseConfig = {
+      apiKey: "AIzaSyAIgxx7Z5VY2Gk3nwrA4SnP_PxZocMEyvc",
+      authDomain: "devorah-chat.firebaseapp.com",
+      projectId: "devorah-chat",
+      storageBucket: "devorah-chat.appspot.com",
+      messagingSenderId: "923103482101",
+      appId: "1:923103482101:web:3de55ab01f5001c862b5bc"
+    };
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const auth = getAuth();
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-  let currentUser = null;
-  let currentTopic = "General Chat";
-  let replyTo = null;
+    const signupBtn = document.getElementById("signupBtn");
+    const loginBtn = document.getElementById("loginBtn");
+    const sendBtn = document.getElementById("sendBtn");
+    const statusDiv = document.getElementById("status");
+    const chatSection = document.getElementById("chatSection");
+    const chatBox = document.getElementById("chatBox");
 
-  /* LOGIN */
-  function login() {
-    const email = document.getElementById("emailInput").value;
-    const pass = document.getElementById("passwordInput").value;
-    signInWithEmailAndPassword(auth, email, pass)
-      .catch(err => alert(err.message));
-  }
+    signupBtn.addEventListener("click", async () => {
+      const email = document.getElementById("emailInput").value;
+      const pass = document.getElementById("passwordInput").value;
+      try {
+        await createUserWithEmailAndPassword(auth, email, pass);
+        statusDiv.textContent = "✅ Account created successfully!";
+      } catch (err) {
+        statusDiv.textContent = "❌ " + err.message;
+        console.error(err);
+      }
+    });
 
-  function signup() {
-    const email = document.getElementById("emailInput").value;
-    const pass = document.getElementById("passwordInput").value;
-    createUserWithEmailAndPassword(auth, email, pass)
-      .catch(err => alert(err.message));
-  }
+    loginBtn.addEventListener("click", async () => {
+      const email = document.getElementById("emailInput").value;
+      const pass = document.getElementById("passwordInput").value;
+      try {
+        await signInWithEmailAndPassword(auth, email, pass);
+        statusDiv.textContent = "✅ Logged in successfully!";
+      } catch (err) {
+        statusDiv.textContent = "❌ " + err.message;
+        console.error(err);
+      }
+    });
 
-  function anonymousLogin() {
-    signInAnonymously(auth);
-  }
+    // Load messages immediately so previous ones appear even before login
+    loadMessages();
 
-  onAuthStateChanged(auth, user => {
-    if (user) {
-      currentUser = user;
-      document.getElementById("loginScreen").style.display = "none";
-      document.getElementById("forumWrapper").style.display = "flex";
-      loadMessages();
-    }
-  });
+    onAuthStateChanged(auth, user => {
+      chatSection.style.display = user ? "block" : "none";
+    });
 
-  /* LOAD MESSAGES IN REAL TIME */
-  function loadMessages() {
-    const q = query(
-      collection(db, "messages"),
-      where("topic", "==", currentTopic),
-      orderBy("time")
-    );
-
-    onSnapshot(q, snapshot => {
-      const container = document.getElementById("chatMessages");
-      container.innerHTML = "";
-      snapshot.forEach(doc => {
-        container.appendChild(renderMessage(doc.data()));
+    async function loadMessages() {
+      const q = query(collection(db, "messages"), orderBy("timestamp"));
+      onSnapshot(q, snapshot => {
+        chatBox.innerHTML = "";
+        snapshot.forEach(doc => {
+          const msg = doc.data();
+          const div = document.createElement("div");
+          div.classList.add("message");
+          const time = msg.timestamp?.toDate().toLocaleString() || "";
+          div.innerHTML = `<strong>${msg.email}</strong>: ${msg.text}<span class="timestamp">${time}</span>`;
+          chatBox.appendChild(div);
+        });
+        chatBox.scrollTop = chatBox.scrollHeight;
       });
-    });
-  }
-
-  /* SEND MESSAGE */
-  async function sendMessage() {
-    const text = document.getElementById("chatInput").value.trim();
-    if (!text) return;
-
-    await addDoc(collection(db, "messages"), {
-      topic: currentTopic,
-      user: currentUser.email || "Anonymous",
-      text,
-      time: Date.now(),
-      parent: replyTo
-    });
-
-    replyTo = null;
-    document.getElementById("chatInput").placeholder = "Type a message";
-    document.getElementById("chatInput").value = "";
-  }
-
-  /* RENDER MESSAGE */
-  function renderMessage(msg) {
-    const div = document.createElement("div");
-    div.className = "message";
-
-    div.innerHTML = `
-      <div><strong>${msg.user}</strong>: ${msg.text}</div>
-      <div class="meta">${new Date(msg.time).toLocaleString()}</div>
-      <div class="reply-btn" onclick="prepareReply('${msg.time}')">Reply</div>
-    `;
-
-    return div;
-  }
-
-  /* REPLY */
-  window.prepareReply = function(id) {
-    replyTo = id;
-    document.getElementById("chatInput").placeholder = "Replying...";
-    document.getElementById("chatInput").focus();
-  };
-
-  /* SWITCH TOPIC */
-  document.getElementById("topicList").addEventListener("click", e => {
-    if (e.target.tagName === "LI") {
-      document.querySelectorAll(".topic-list li").forEach(li => li.classList.remove("active"));
-      e.target.classList.add("active");
-      currentTopic = e.target.textContent;
-      document.getElementById("currentTopicTitle").textContent = currentTopic;
-      loadMessages();
     }
-  });
-</script>
 
+    sendBtn.addEventListener("click", async () => {
+      const text = document.getElementById("messageInput").value.trim();
+      if (!text) return;
+      const user = auth.currentUser;
+      if (!user) return alert("Please log in first.");
+      await addDoc(collection(db, "messages"), {
+        email: user.email,
+        text,
+        timestamp: serverTimestamp()
+      });
+      document.getElementById("messageInput").value = "";
+    });
+  </script>
 </body>
 </html>
